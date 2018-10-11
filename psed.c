@@ -1,3 +1,4 @@
+//Daniel Bílý(xbilyd01) a Jakub Gajdošík(xgajdo24)
 #include <stdio.h>
 #include<unistd.h>
 
@@ -41,11 +42,22 @@ int main(int argc, char *argv[])
 {
 	//dvojice argumentu pro regex + './psed' => lichy pocet, presmerovani stdin se jako argument nepocita
 	if ((argc < 3) || (argc % 2 == 0))
+	{
 		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
+		exit(1);
+	}
 
-	
+	/*
+	std regex replace
+
+	regex compile
+
+	usleep pro deadlock
+
+	1 nebo 2 zamky
 
 
+	*/
 	//nacitani radku
 	int res;//result
 	line=read_line(&res);
