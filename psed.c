@@ -11,6 +11,7 @@
 
 char *line;
 int counter; 
+char * test_line;
 
 /*
 
@@ -50,28 +51,15 @@ char *read_line(int *res)
 
 void f (char *reg1, char *reg2, int order)
 {
-	
+	//aktivni cekani
 	
 	std::regex r1 (reg1);
-	std::regex r2 (reg2);
+	while (order != counter);
+	
+	printf("OUTPUT: %s\n",to_cstr(std::regex_replace (test_line, r1, reg2))); 
 	
 	
-	//aktivni cekani
-	while (order != counter)
-	{
-
-	}
-	
-	//random regex z netu, funguje, muj nefunguje
-	/*
-	std::string s ("there is a subsequence in the string\n");
-  	std::regex e ("\\b(sub)([^ ]*)");   // matches words beginning by "sub"
-	std::cout << std::regex_replace (s,e,"sub-$2");
-	*/
-	printf("VYSTUP: %s %s\n",reg1, reg2);
-	printf("ORDER: %d\n", order);
 	counter++;
-	//printf("%s",to_cstr(std::regex_replace (line, r1, r2))); 
 	
 }
 
@@ -83,15 +71,40 @@ int main(int argc, char *argv[])
 		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
+	
 	int order = 0;//kazdy regex ma sve poradi
+	//pricitat az v threadu?
+	counter = -1;//pricitat a pri spravnem poradi provest urceny regex
+	//z -1 do 0 pricte main, pote pricitaji jednotlive thready
+	test_line = to_cstr("Ahoj, tohle je pokus");
+
+
+	//tvorba pole threadu(prazdne)
 	int num_regex = (argc - 1) / 2;
 	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
 	threads.resize(num_regex); /* nastavime si velikost pole threads */
-	
-	
-	//pricitat az v threadu?
-	counter = 0;//pricitat a pri spravnem poradi provest urceny regex
-	
+
+	for(int i = 0;i < num_regex;i++)
+	{	
+		std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
+		threads[i]=new_thread;
+		order++;
+	}
+
+	//counter++;//spusteni threadu
+
+	int res;//result
+	line=read_line(&res);
+	while (res) 
+	{
+		//	printf("%s\n",line);
+
+		
+
+		//free(line); 
+		line=read_line(&res);
+
+	}	
 	/*
 	std regex replace
 
@@ -103,27 +116,11 @@ int main(int argc, char *argv[])
 
 
 	*/
+
+
 	//nacitani radku
-	int res;//result
 
-	line=read_line(&res);
-	while (res) 
-	{
-		//	printf("%s\n",line);
-
-		for(int i = 0;i < num_regex;i++)
-		{	
-			//vlakna se maji vytvorit jen jednou pro kazdy regex, tohle je spatne
-			std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
-			threads[i]=new_thread;
-			order++;
-		}
-
-		free(line); /* uvolnim pamet */
-		line=read_line(&res);
-
-	}
-
+	
 	sleep(1);//aby vlakna stihla vypsat
 
 	/* provedeme join a uvolnime pamet threads */
