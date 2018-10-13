@@ -19,7 +19,7 @@ posilat poradi do regexu
 aktivni cekani na svou hodnotu
 az potom vypis
 
-
+odstranit nektere includy, jsou skopirovane z kostry
 
 */
 
@@ -51,7 +51,8 @@ char *read_line(int *res)
 
 void f (char *reg1, char *reg2, int order)
 {
-	//aktivni cekani
+	
+	
 	
 	std::regex r1 (reg1);
 	while (order != counter);
@@ -60,6 +61,9 @@ void f (char *reg1, char *reg2, int order)
 	
 	
 	counter++;
+		
+	
+
 	
 }
 
@@ -73,7 +77,7 @@ int main(int argc, char *argv[])
 	}
 	
 	int order = 0;//kazdy regex ma sve poradi
-	//pricitat az v threadu?
+	
 	counter = -1;//pricitat a pri spravnem poradi provest urceny regex
 	//z -1 do 0 pricte main, pote pricitaji jednotlive thready
 	test_line = to_cstr("Ahoj, tohle je pokus");
@@ -84,6 +88,10 @@ int main(int argc, char *argv[])
 	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
 	threads.resize(num_regex); /* nastavime si velikost pole threads */
 
+	//mutexy
+	std::mutex mutex_1;
+	std::mutex mutex_2;
+
 	for(int i = 0;i < num_regex;i++)
 	{	
 		std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
@@ -91,17 +99,26 @@ int main(int argc, char *argv[])
 		order++;
 	}
 
-	//counter++;//spusteni threadu
+	
 
 	int res;//result
 	line=read_line(&res);
 	while (res) 
 	{
-		//	printf("%s\n",line);
+		counter++;//spusteni threadu
 
-		
+		//aktivni cekani nefunguje??
+		mutex_1.lock();
+		while (counter != num_regex) {
+			mutex_1.unlock();
+			mutex_1.lock();
+			printf("CTU");
+		}
+		mutex_1.unlock();
 
-		//free(line); 
+		counter = -1;
+
+		free(line); 
 		line=read_line(&res);
 
 	}	
