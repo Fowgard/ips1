@@ -10,6 +10,17 @@
 #include <regex>
 
 char *line;
+int counter; 
+
+/*
+
+posilat poradi do regexu
+aktivni cekani na svou hodnotu
+az potom vypis
+
+
+
+*/
 
 char *to_cstr(std::string a) 
 {
@@ -37,19 +48,29 @@ char *read_line(int *res)
 	}
 }
 
-void f (char *reg1, char *reg2)
+void f (char *reg1, char *reg2, int order)
 {
-	/*
-	printf("VYSTUP: %s %s\n",reg1, reg2);
+	
+	
 	std::regex r1 (reg1);
 	std::regex r2 (reg2);
-	*/
+	
+	
+	//aktivni cekani
+	while (order != counter)
+	{
+
+	}
 	
 	//random regex z netu, funguje, muj nefunguje
+	/*
 	std::string s ("there is a subsequence in the string\n");
   	std::regex e ("\\b(sub)([^ ]*)");   // matches words beginning by "sub"
 	std::cout << std::regex_replace (s,e,"sub-$2");
-
+	*/
+	printf("VYSTUP: %s %s\n",reg1, reg2);
+	printf("ORDER: %d\n", order);
+	counter++;
 	//printf("%s",to_cstr(std::regex_replace (line, r1, r2))); 
 	
 }
@@ -62,12 +83,14 @@ int main(int argc, char *argv[])
 		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
-
+	int order = 0;//kazdy regex ma sve poradi
 	int num_regex = (argc - 1) / 2;
 	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
 	threads.resize(num_regex); /* nastavime si velikost pole threads */
-
 	
+	
+	//pricitat az v threadu?
+	counter = 0;//pricitat a pri spravnem poradi provest urceny regex
 	
 	/*
 	std regex replace
@@ -90,8 +113,10 @@ int main(int argc, char *argv[])
 
 		for(int i = 0;i < num_regex;i++)
 		{	
-			std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2]);
+			//vlakna se maji vytvorit jen jednou pro kazdy regex, tohle je spatne
+			std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
 			threads[i]=new_thread;
+			order++;
 		}
 
 		free(line); /* uvolnim pamet */
