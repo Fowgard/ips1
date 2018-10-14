@@ -1,2 +1,2 @@
 psed: psed.c 
-	g++ psed.c -o psed -lpthread
+	g++ -Werror -Wextra psed.c -o psed -lpthread

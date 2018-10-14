@@ -10,8 +10,8 @@
 #include <regex>
 
 char *line;
-int counter; 
-char * test_line;
+int counter;
+int end;
 
 /*
 
@@ -52,18 +52,15 @@ char *read_line(int *res)
 void f (char *reg1, char *reg2, int order)
 {
 	
-	
-	
-	std::regex r1 (reg1);
-	while (order != counter);
-	
-	printf("OUTPUT: %s\n",to_cstr(std::regex_replace (test_line, r1, reg2))); 
-	
-	
-	counter++;
-		
-	
-
+	while(!end){
+		std::regex r1 (reg1);
+		while (order != counter && end != 1);
+		if(end == 0)
+		{
+			printf("%s\n", to_cstr(std::regex_replace (line, r1, reg2))); 
+			counter++;
+		}
+	}
 	
 }
 
@@ -75,13 +72,10 @@ int main(int argc, char *argv[])
 		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
-	
 	int order = 0;//kazdy regex ma sve poradi
-	
+	end = 0;
 	counter = -1;//pricitat a pri spravnem poradi provest urceny regex
 	//z -1 do 0 pricte main, pote pricitaji jednotlive thready
-	test_line = to_cstr("Ahoj, tohle je pokus");
-
 
 	//tvorba pole threadu(prazdne)
 	int num_regex = (argc - 1) / 2;
@@ -90,58 +84,36 @@ int main(int argc, char *argv[])
 
 	//mutexy
 	std::mutex mutex_1;
-	std::mutex mutex_2;
-
 	for(int i = 0;i < num_regex;i++)
 	{	
 		std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
 		threads[i]=new_thread;
 		order++;
 	}
-
 	
-
 	int res;//result
 	line=read_line(&res);
 	while (res) 
 	{
 		counter++;//spusteni threadu
-
-		//aktivni cekani nefunguje??
 		mutex_1.lock();
-		while (counter != num_regex) {
+		while (counter != num_regex)
+		{
 			mutex_1.unlock();
 			mutex_1.lock();
-			printf("CTU");
 		}
 		mutex_1.unlock();
-
 		counter = -1;
-
-		free(line); 
+		free(line);
 		line=read_line(&res);
 
-	}	
-	/*
-	std regex replace
+	}
 
-	regex compile
-
-	usleep pro deadlock
-
-	1 nebo 2 zamky
-
-
-	*/
-
-
-	//nacitani radku
-
-	
 	sleep(1);//aby vlakna stihla vypsat
-
+	end = 1;
 	/* provedeme join a uvolnime pamet threads */
-	for(int i=0;i<num_regex;i++){
+	for(int i=0;i<num_regex;i++)
+	{
 		(*(threads[i])).join();
 		delete threads[i];
 	}
