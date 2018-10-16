@@ -5,9 +5,9 @@
 #include<queue>
 #include<mutex>
 #include<vector>
-#include <iostream>
+#include<iostream>
 #include<string.h>
-#include <regex>
+#include<regex>
 
 char *line;
 int counter;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	//dvojice argumentu pro regex + './psed' => lichy pocet, presmerovani stdin se jako argument nepocita
 	if ((argc < 3) || (argc % 2 == 0))
 	{
-		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
+		printf("USAGE: ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
 	int order = 0;//kazdy regex ma sve poradi
@@ -110,6 +110,9 @@ int main(int argc, char *argv[])
 	int num_regex = (argc - 1) / 2;
 	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
 	threads.resize(num_regex); /* nastavime si velikost pole threads */
+
+	//lines
+	lines.resize(num_regex);
 
 	//mutexy
 	std::mutex mutex_1;
