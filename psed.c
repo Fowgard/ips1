@@ -5,15 +5,14 @@
 #include<queue>
 #include<mutex>
 #include<vector>
-#include<iostream>
+#include <iostream>
 #include<string.h>
-#include<regex>
+#include <regex>
 
 char *line;
 int counter;
 int end;
-int line_loaded;
-
+int line_done;
 
 
 /*
@@ -55,41 +54,21 @@ char *read_line(int *res)
 void f (char *reg1, char *reg2, int order)
 {
 	std::regex r1 (reg1);
-	std::string output;
-	std::mutex mutex_2;
-	std::mutex mutex_3;
-
-	while(!end){
+	while(!end)
+	{	
+		while(line_done == 0);
+		std::string output = regex_replace (line, r1, reg2);
 		
-		mutex_2.lock();
-		while (line_loaded != 1)
-		{
-			mutex_2.unlock();
-			mutex_2.lock();
-		}
-		mutex_2.unlock();
-		
-		output = regex_replace (line, r1, reg2);	
-
-		//main musi pockat nez vsichni provedou svuj regex
-		mutex_3.lock();
-		while (order != counter && end != 1)
-		{
-			mutex_3.unlock();
-			mutex_3.lock();
-		}
-		mutex_3.unlock();
-
-
-		//while (order != counter && end != 1);
+		while (order != counter && end != 1);
 		if(end == 0)
 		{
-			//std::cout << output;	
-
-			printf("%s\n", to_cstr(output));//(std::regex_replace (line, r1, reg2))); 
+			printf("%s\n", to_cstr(output)); 
 			counter++;
+			while(counter != -1);
 		}
 	}
+
+	
 }
 
 int main(int argc, char *argv[])
@@ -97,26 +76,22 @@ int main(int argc, char *argv[])
 	//dvojice argumentu pro regex + './psed' => lichy pocet, presmerovani stdin se jako argument nepocita
 	if ((argc < 3) || (argc % 2 == 0))
 	{
-		printf("USAGE: ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
+		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
 	int order = 0;//kazdy regex ma sve poradi
 	end = 0;
 	counter = -1;//pricitat a pri spravnem poradi provest urceny regex
 	//z -1 do 0 pricte main, pote pricitaji jednotlive thready
-	line_loaded = 0;
 
+	line_done = 0;
 	//tvorba pole threadu(prazdne)
 	int num_regex = (argc - 1) / 2;
 	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
 	threads.resize(num_regex); /* nastavime si velikost pole threads */
 
-	//lines
-	lines.resize(num_regex);
-
 	//mutexy
 	std::mutex mutex_1;
-	//volani threadu
 	for(int i = 0;i < num_regex;i++)
 	{	
 		std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
@@ -126,10 +101,9 @@ int main(int argc, char *argv[])
 	
 	int res;//result
 	line=read_line(&res);
-	
+	line_done = 1;
 	while (res) 
 	{
-		line_loaded = 1;
 		counter++;//spusteni threadu
 		mutex_1.lock();
 		while (counter != num_regex)
@@ -138,22 +112,17 @@ int main(int argc, char *argv[])
 			mutex_1.lock();
 		}
 		mutex_1.unlock();
-		
-		
-		line_loaded = 0;
 		counter = -1;
-
-		
+		line_done = 0;
 		free(line);
 		line=read_line(&res);
-		
+
+		line_done = 1;
 
 	}
-
-	//rozdelit regexy a vypis do dvou cyklu?
-
-	sleep(1);//aby vlakna stihla vypsat
+	sleep(1);
 	end = 1;
+
 	/* provedeme join a uvolnime pamet threads */
 	for(int i=0;i<num_regex;i++)
 	{
