@@ -1,0 +1,38 @@
+#!/bin/bash
+
+./psed1 '(.*)wheel(.*)' '$1kolo$2' 'root' 'superman' 'ALL.*' 'KONEC' '(.*)ALL(.*$)' '$3LLA$2LLA$1' < sudoers > spravne_reseni
+for i in {1..50000}; do
+    #rm tmp_soubor
+    ./psed '(.*)wheel(.*)' '$1kolo$2' 'root' 'superman' 'ALL.*' 'KONEC' '(.*)ALL(.*$)' '$3LLA$2LLA$1' < sudoers > tmp_soubor
+    
+    DIFF=$(diff spravne_reseni tmp_soubor) 
+    if [ "$DIFF" != "" ] 
+    then
+        echo "$i"a
+    fi
+done
+echo 1st done
+./psed1 '[^:]*-[^:]*:' 'SKUPINA:' '([^:]*):(.*)' '$2<>$1' 'root' 'superman' <group > spravne_reseni
+for i in {1..50000}; do
+    #rm tmp_soubor
+    ./psed '[^:]*-[^:]*:' 'SKUPINA:' '([^:]*):(.*)' '$2<>$1' 'root' 'superman' <group > tmp_soubor
+    
+    DIFF=$(diff spravne_reseni tmp_soubor) 
+    if [ "$DIFF" != "" ] 
+    then
+        echo "$i"b
+    fi
+done
+echo 2nd done
+./psed1 'psed' 'projekt' '\+\+' '--' '<(.*)>' '>$1<' < zadani.txt > spravne_reseni
+for i in {1..50000}; do
+    #rm tmp_soubor
+    ./psed 'psed' 'projekt' '\+\+' '--' '<(.*)>' '>$1<' < zadani.txt > tmp_soubor
+    
+    DIFF=$(diff spravne_reseni tmp_soubor) 
+    if [ "$DIFF" != "" ] 
+    then
+        echo "$i"c
+    fi
+done
+echo 3rd done

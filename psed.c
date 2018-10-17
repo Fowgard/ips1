@@ -1,29 +1,21 @@
 //Daniel Bílý(xbilyd01) a Jakub Gajdošík(xgajdo24)
-#include <stdio.h>
-#include<unistd.h>
+#include<stdio.h>
 #include<thread>
-#include<queue>
 #include<mutex>
 #include<vector>
-#include <iostream>
+#include<iostream>
 #include<string.h>
-#include <regex>
+#include<regex>
 
 char *line;
 int counter;
+int wait;
 int end;
-int line_done;
+int num_regex;
+std::vector<std::mutex *> zamky;
+std::mutex mutex_1;
+std::mutex threads_rdy;
 
-
-/*
-
-posilat poradi do regexu
-aktivni cekani na svou hodnotu
-az potom vypis
-
-odstranit nektere includy, jsou skopirovane z kostry
-
-*/
 
 char *to_cstr(std::string a) 
 {
@@ -51,24 +43,35 @@ char *read_line(int *res)
 	}
 }
 
+
 void f (char *reg1, char *reg2, int order)
 {
 	std::regex r1 (reg1);
-	while(!end)
+	std::string output;
+	while(!end)//ziot threadu do podminky
 	{	
-		while(line_done == 0);
-		std::string output = regex_replace (line, r1, reg2);
-		
-		while (order != counter && end != 1);
-		if(end == 0)
+		zamky[order]->lock();//uvodni propust
+		if (end == 0)
 		{
-			printf("%s\n", to_cstr(output)); 
-			counter++;
-			while(counter != -1);
+			output = regex_replace (line, r1, reg2); //paralelni zpracovani
+
+			while(counter != order);	//sekvencni vypsani podminkou
+
+			printf("%s\n", to_cstr(output));
+
+			counter++; //propust dalsiho threadu pro vypis
+		
+			mutex_1.lock();
+			wait++;
+			if (wait == num_regex)
+			{
+				wait = 0;		//reset citadel
+				counter =  0;	
+				threads_rdy.unlock(); //signal pro propust main
+			}
+			mutex_1.unlock();
 		}
 	}
-
-	
 }
 
 int main(int argc, char *argv[])
@@ -79,19 +82,29 @@ int main(int argc, char *argv[])
 		printf("spravne pouziti ./psed RE1 REPL1 [ RE2 REPL2 ] [ RE3  REPL3 ] ...\n");
 		exit(1);
 	}
-	int order = 0;//kazdy regex ma sve poradi
-	end = 0;
-	counter = -1;//pricitat a pri spravnem poradi provest urceny regex
-	//z -1 do 0 pricte main, pote pricitaji jednotlive thready
 
-	line_done = 0;
-	//tvorba pole threadu(prazdne)
-	int num_regex = (argc - 1) / 2;
-	std::vector <std::thread *> threads; /* pole threadu promenne velikosti */
-	threads.resize(num_regex); /* nastavime si velikost pole threads */
+	int order = 0;//kazdy thread/regex ma sve poradi
+	int res;//vysledek zda se nacetl radek
+	end = 0; //koncova podminka
+	counter = 0;//pricita a pri spravnem poradi provest urceny vypis threadu
+	wait =0;//spolecne cekani na konci threadu na main
+
+	num_regex = (argc - 1) / 2; // vypocet threadu podle argumentu
 
 	//mutexy
-	std::mutex mutex_1;
+	threads_rdy.lock();
+
+	zamky.resize(num_regex); //nastavime si velikost pole zamky
+	for(int i=0;i<num_regex;i++){	
+		std::mutex *new_zamek = new std::mutex();
+		zamky[i]=new_zamek;
+		zamky[i]->lock(); //zacatek je v zamklem stavu
+	}
+
+
+	//threads
+	std::vector <std::thread *> threads;
+	threads.resize(num_regex); // nastavime si velikost pole threads
 	for(int i = 0;i < num_regex;i++)
 	{	
 		std::thread *new_thread = new std::thread (f,argv[i * 2+1],argv[i * 2+2], order);
@@ -99,36 +112,29 @@ int main(int argc, char *argv[])
 		order++;
 	}
 	
-	int res;//result
+	//core
 	line=read_line(&res);
-	line_done = 1;
 	while (res) 
 	{
-		counter++;//spusteni threadu
-		mutex_1.lock();
-		while (counter != num_regex)
-		{
-			mutex_1.unlock();
-			mutex_1.lock();
-		}
-		mutex_1.unlock();
-		counter = -1;
-		line_done = 0;
+		for (int i = 0; i < num_regex; ++i)
+			zamky[i]->unlock();
+		threads_rdy.lock();
 		free(line);
 		line=read_line(&res);
-
-		line_done = 1;
-
 	}
-	sleep(1);
-	end = 1;
 
-	/* provedeme join a uvolnime pamet threads */
+	//zastaveni threadu
+	end = 1;
+	for (int i = 0; i < num_regex; ++i)
+			zamky[i]->unlock();
+
+	//uvolnovani threadu a mutexu
 	for(int i=0;i<num_regex;i++)
 	{
 		(*(threads[i])).join();
 		delete threads[i];
-	}
+		delete zamky[i];
 
+	}
 	return 0;
 }
